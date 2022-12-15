@@ -1,36 +1,43 @@
-name: CI/CD
+name: Azure Bicep Infra
 
-on:
-  push:
-    branches: [ main, dev ]
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Build and test the code
-      run: |
-        # build and test the code here
-        echo "Build and test successful!"
-  deploy:
-    needs: [build]
+
+      # Checkout code
+    - uses: actions/checkout@main
+
+      # Lint Bicep code 
+    - name: Run Bicep linter
+      run: az bicep build --file ./main.bicep
+
+
+  deploy-prod:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Deploy to production
-      run: |
-        # deploy the code to production here
-        echo "Deployment successful!"
-        # pass MYSECRET as an environment variable
-        env:
-          MYSECRET: ${{ secrets.MYSECRET }}
+    needs: build
+    environment:
+      name: 'Production'
 
-branch protection:
-  require_pull_request: true
-  required_status_checks:
-    include_admins: true
-    strict: true
-  required_pull_request_reviews:
-    include_admins: true
+    steps:
+
+      # Checkout code
+    - uses: actions/checkout@main
+
+      # Log into Azure
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Deploy Bicep file
+    - name: deploy
+      uses: azure/arm-deploy@v1
+      with:
+        subscriptionId: e0b9cada-61bc-4b5a-bd7a-52c606726b3b
+        resourceGroupName: jseijas_students_1
+        template: ./main.bicep
+        parameters: parameters.json
+        failOnStdErr: false
