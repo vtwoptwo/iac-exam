@@ -1,0 +1,36 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, dev ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and test the code
+      run: |
+        # build and test the code here
+        echo "Build and test successful!"
+  deploy:
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Deploy to production
+      run: |
+        # deploy the code to production here
+        echo "Deployment successful!"
+        # pass MYSECRET as an environment variable
+        env:
+          MYSECRET: ${{ secrets.MYSECRET }}
+
+branch protection:
+  require_pull_request: true
+  required_status_checks:
+    include_admins: true
+    strict: true
+  required_pull_request_reviews:
+    include_admins: true
